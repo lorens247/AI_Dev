@@ -29,7 +29,7 @@ export default function HomePage() {
               <Button size="lg" asChild className="btn-success text-lg px-10 py-4 text-lg font-bold">
                 <Link href="/polls">🚀 Browse Polls</Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="btn-outline text-lg px-10 py-4 text-lg font-bold border-white text-white hover:bg-white hover:text-blue-600">
+              <Button size="lg" variant="outline" asChild className="btn-outline text-lg px-10 py-4 text-lg font-bold border-white text-gray-900 hover:bg-white hover:text-blue-600">
                 <Link href="/polls/create">✨ Create Poll</Link>
               </Button>
             </div>
@@ -139,7 +139,7 @@ export default function HomePage() {
               <Button size="lg" asChild className="btn-success text-lg px-10 py-4 text-lg font-bold">
                 <Link href="/auth/register">🚀 Get Started Free</Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="btn-outline text-lg px-10 py-4 text-lg font-bold border-white text-white hover:bg-white hover:text-gray-900">
+              <Button size="lg" variant="outline" asChild className="btn-outline text-lg px-10 py-4 text-lg font-bold border-white text-gray-900 hover:bg-white hover:text-blue-600">
                 <Link href="/polls">🔍 Explore Polls</Link>
               </Button>
             </div>
