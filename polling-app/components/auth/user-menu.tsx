@@ -2,70 +2,66 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
-interface User {
-  id: string
-  name: string
-  email: string
-}
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { User, LogOut, Settings } from "lucide-react"
 
 interface UserMenuProps {
-  user: User
+  user: {
+    id: string
+    name: string
+    email: string
+  }
   onLogout: () => void
 }
 
 export function UserMenu({ user, onLogout }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2"
-      >
-        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold">
-          {user.name.charAt(0).toUpperCase()}
-        </div>
-        <span className="hidden md:block">{user.name}</span>
-      </Button>
+  const handleLogout = async () => {
+    await onLogout()
+    setIsOpen(false)
+  }
 
-      {isOpen && (
-        <Card className="absolute right-0 top-12 w-64 z-50">
-          <CardHeader>
-            <CardTitle className="text-lg">Account</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">{user.name}</p>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                Profile Settings
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                My Polls
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                Voting History
-              </Button>
-            </div>
-            
-            <div className="pt-2 border-t">
-              <Button 
-                variant="destructive" 
-                className="w-full" 
-                onClick={onLogout}
-              >
-                Sign Out
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+  return (
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <User className="mr-2 h-4 w-4" />
+          <span>Profile</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Settings</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

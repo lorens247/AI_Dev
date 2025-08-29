@@ -4,20 +4,15 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { UserMenu } from "@/components/auth/user-menu"
-
-// Mock user data - replace with actual auth state
-const mockUser = {
-  id: "1",
-  name: "John Doe",
-  email: "john@example.com"
-}
+import { useAuth } from "@/contexts/auth-context"
 
 export function Navigation() {
-  const [isAuthenticated] = useState(true) // Replace with actual auth state
+  const { user, loading, signOut } = useAuth()
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
-    console.log("Logging out...")
+  const handleLogout = async () => {
+    await signOut()
+    setIsUserMenuOpen(false)
   }
 
   return (
@@ -42,12 +37,14 @@ export function Navigation() {
             >
               📊 Browse Polls
             </Link>
-            <Link 
-              href="/polls/create" 
-              className="nav-link text-base font-medium"
-            >
-              ✨ Create Poll
-            </Link>
+            {user && (
+              <Link 
+                href="/polls/create" 
+                className="nav-link text-base font-medium"
+              >
+                ✨ Create Poll
+              </Link>
+            )}
             <Link 
               href="/about" 
               className="nav-link text-base font-medium"
@@ -58,8 +55,17 @@ export function Navigation() {
 
           {/* Auth Section */}
           <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <UserMenu user={mockUser} onLogout={handleLogout} />
+            {loading ? (
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            ) : user ? (
+              <UserMenu 
+                user={{
+                  id: user.id,
+                  name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+                  email: user.email || ''
+                }} 
+                onLogout={handleLogout}
+              />
             ) : (
               <div className="flex items-center space-x-3">
                 <Button variant="ghost" asChild className="btn-ghost">
