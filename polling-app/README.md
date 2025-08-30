@@ -74,10 +74,10 @@ polling-app/
    ```
 
 3. **Run the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
+```bash
+npm run dev
+# or
+yarn dev
    ```
 
 4. **Open your browser**

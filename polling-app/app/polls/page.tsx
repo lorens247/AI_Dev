@@ -5,7 +5,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase"
-import { Plus, Users, Calendar, BarChart3 } from "lucide-react"
+import { Plus, Users, Calendar, BarChart3, Edit, Trash2, Eye } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Poll {
   id: string
@@ -30,8 +31,10 @@ export default function PollsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [filter, setFilter] = useState<'all' | 'active' | 'closed'>('all')
+  const [deletingPoll, setDeletingPoll] = useState<string | null>(null)
   
   const supabase = createClient()
+  const { user } = useAuth()
 
   useEffect(() => {
     fetchPolls()
@@ -81,6 +84,47 @@ export default function PollsPage() {
     }
   }
 
+  const handleDeletePoll = async (pollId: string) => {
+    if (!confirm('Are you sure you want to delete this poll? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeletingPoll(pollId)
+      
+      // Delete votes first (due to foreign key constraints)
+      const { error: votesError } = await supabase
+        .from('votes')
+        .delete()
+        .eq('poll_id', pollId)
+
+      if (votesError) throw votesError
+
+      // Delete poll options
+      const { error: optionsError } = await supabase
+        .from('poll_options')
+        .delete()
+        .eq('poll_id', pollId)
+
+      if (optionsError) throw optionsError
+
+      // Delete the poll
+      const { error: pollError } = await supabase
+        .from('polls')
+        .delete()
+        .eq('id', pollId)
+
+      if (pollError) throw pollError
+
+      // Remove from local state
+      setPolls(polls.filter(poll => poll.id !== pollId))
+    } catch (err: any) {
+      setError(err.message || "Failed to delete poll")
+    } finally {
+      setDeletingPoll(null)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800'
@@ -101,6 +145,10 @@ export default function PollsPage() {
   const isExpired = (expiresAt: string | null) => {
     if (!expiresAt) return false
     return new Date(expiresAt) < new Date()
+  }
+
+  const isPollOwner = (poll: Poll) => {
+    return user && poll.created_by === user.id
   }
 
   if (loading) {
@@ -205,9 +253,16 @@ export default function PollsPage() {
                         </CardDescription>
                       )}
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(poll.status)}`}>
-                      {poll.status}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(poll.status)}`}>
+                        {poll.status}
+                      </span>
+                      {isPollOwner(poll) && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Your Poll
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -255,12 +310,44 @@ export default function PollsPage() {
                     </div>
                   )}
 
-                  {/* Action Button */}
-                  <Button asChild className="w-full">
-                    <Link href={`/polls/${poll.id}`}>
-                      {poll.status === 'active' ? '🗳️ Vote Now' : '👁️ View Results'}
-                    </Link>
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex space-x-2">
+                    {/* View/Vote Button */}
+                    <Button asChild className="flex-1">
+                      <Link href={`/polls/${poll.id}`}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        {poll.status === 'active' ? 'Vote Now' : 'View Results'}
+                      </Link>
+                    </Button>
+
+                    {/* Owner Actions */}
+                    {isPollOwner(poll) && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                        >
+                          <Link href={`/polls/${poll.id}/edit`}>
+                            <Edit className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeletePoll(poll.id)}
+                          disabled={deletingPoll === poll.id}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          {deletingPoll === poll.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
