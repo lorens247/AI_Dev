@@ -1,0 +1,9 @@
+---
+alwaysApply: false
+---
+      - Follow semantic commit conventions:  
+        • `feat:` → new feature  
+        • `fix:` → bug fix  
+        • `chore:` → config, tooling  
+        • `style:` → UI/styling-only changes  
+      - Example: `feat: add poll detail page with voting form`

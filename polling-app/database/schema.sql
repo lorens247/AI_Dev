@@ -1,8 +1,18 @@
 -- Polling App Database Schema
 -- Run this in your Supabase SQL Editor
+-- This script will safely recreate the schema even if parts already exist
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Drop existing tables and types if they exist (in correct order due to dependencies)
+DROP TABLE IF EXISTS public.votes CASCADE;
+DROP TABLE IF EXISTS public.poll_options CASCADE;
+DROP TABLE IF EXISTS public.polls CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
+-- Drop existing types
+DROP TYPE IF EXISTS poll_status CASCADE;
 
 -- Create custom types
 CREATE TYPE poll_status AS ENUM ('active', 'closed', 'draft');
@@ -49,17 +59,35 @@ CREATE TABLE public.votes (
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_polls_created_by ON public.polls(created_by);
-CREATE INDEX idx_polls_status ON public.polls(status);
-CREATE INDEX idx_poll_options_poll_id ON public.poll_options(poll_id);
-CREATE INDEX idx_votes_poll_id ON public.votes(poll_id);
-CREATE INDEX idx_votes_user_id ON public.votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_polls_created_by ON public.polls(created_by);
+CREATE INDEX IF NOT EXISTS idx_polls_status ON public.polls(status);
+CREATE INDEX IF NOT EXISTS idx_poll_options_poll_id ON public.poll_options(poll_id);
+CREATE INDEX IF NOT EXISTS idx_votes_poll_id ON public.votes(poll_id);
+CREATE INDEX IF NOT EXISTS idx_votes_user_id ON public.votes(user_id);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.polls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.poll_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.votes ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+
+DROP POLICY IF EXISTS "Users can view all polls" ON public.polls;
+DROP POLICY IF EXISTS "Users can create polls" ON public.polls;
+DROP POLICY IF EXISTS "Users can update own polls" ON public.polls;
+DROP POLICY IF EXISTS "Users can delete own polls" ON public.polls;
+
+DROP POLICY IF EXISTS "Users can view all poll options" ON public.poll_options;
+DROP POLICY IF EXISTS "Users can manage options for own polls" ON public.poll_options;
+
+DROP POLICY IF EXISTS "Users can view all votes" ON public.votes;
+DROP POLICY IF EXISTS "Users can create own votes" ON public.votes;
+DROP POLICY IF EXISTS "Users can update own votes" ON public.votes;
+DROP POLICY IF EXISTS "Users can delete own votes" ON public.votes;
 
 -- RLS Policies
 
@@ -112,6 +140,9 @@ CREATE POLICY "Users can update own votes" ON public.votes
 CREATE POLICY "Users can delete own votes" ON public.votes
   FOR DELETE USING (auth.uid() = user_id);
 
+-- Drop existing function if it exists
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -121,12 +152,19 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- Drop existing triggers if they exist
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
+DROP TRIGGER IF EXISTS update_polls_updated_at ON public.polls;
+
 -- Create triggers for updated_at
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_polls_updated_at BEFORE UPDATE ON public.polls
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Drop existing function if it exists
+DROP FUNCTION IF EXISTS get_poll_results(UUID) CASCADE;
 
 -- Function to get poll results
 CREATE OR REPLACE FUNCTION get_poll_results(poll_uuid UUID)
