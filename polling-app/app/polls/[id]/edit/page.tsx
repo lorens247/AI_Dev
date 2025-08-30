@@ -75,10 +75,16 @@ export default function EditPollPage() {
       setPoll(pollData)
       setTitle(pollData.title)
       setDescription(pollData.description || "")
-      setOptions(pollData.poll_options.map(opt => ({ id: opt.id, text: opt.text })))
-      setExpiresAt(pollData.expires_at ? new Date(pollData.expires_at).toISOString().slice(0, 16) : "")
+      setOptions(
+        pollData.poll_options.map((opt: any) => ({ id: opt.id, text: opt.text }))
+      )
+      setExpiresAt(
+        pollData.expires_at
+          ? new Date(pollData.expires_at).toISOString().slice(0, 16)
+          : ""
+      )
     } catch (err: any) {
-      setError(err.message || "Failed to fetch poll")
+      setError((err as Error).message || "Failed to fetch poll")
     } finally {
       setLoading(false)
     }
@@ -136,19 +142,19 @@ export default function EditPollPage() {
 
       // Handle poll options
       const existingOptions = poll?.poll_options || []
-      const newOptions = validOptions.filter(opt => opt.id.startsWith('new-'))
-      const updatedOptions = validOptions.filter(opt => !opt.id.startsWith('new-'))
+      const newOptions = validOptions.filter((opt: PollOption) => opt.id.startsWith('new-'))
+      const updatedOptions = validOptions.filter((opt: PollOption) => !opt.id.startsWith('new-'))
 
       // Delete removed options
-      const optionsToDelete = existingOptions.filter(existing => 
-        !validOptions.some(valid => valid.id === existing.id)
+      const optionsToDelete = existingOptions.filter((existing: PollOption) => 
+        !validOptions.some((valid: PollOption) => valid.id === existing.id)
       )
       
       if (optionsToDelete.length > 0) {
         const { error: deleteError } = await supabase
           .from('poll_options')
           .delete()
-          .in('id', optionsToDelete.map(opt => opt.id))
+          .in('id', optionsToDelete.map((opt: PollOption) => opt.id))
 
         if (deleteError) throw deleteError
       }
@@ -165,7 +171,7 @@ export default function EditPollPage() {
 
       // Add new options
       if (newOptions.length > 0) {
-        const newOptionsData = newOptions.map((option, index) => ({
+        const newOptionsData = newOptions.map((option: PollOption, index: number) => ({
           poll_id: pollId,
           text: option.text.trim(),
           order_index: existingOptions.length + index + 1

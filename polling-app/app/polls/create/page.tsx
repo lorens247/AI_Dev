@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { createClient } from "@/lib/supabase"
 import { Plus, X, Calendar } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface PollOption {
   id: string
@@ -28,6 +29,32 @@ export default function CreatePollPage() {
   
   const router = useRouter()
   const supabase = createClient()
+  const { user, loading: authLoading } = useAuth()
+
+  const testConnection = async () => {
+    try {
+      console.log("Testing Supabase connection...")
+      setError("")
+      
+      // Test basic connection
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1)
+      
+      if (error) {
+        console.error("Connection test failed:", error)
+        setError(`Connection test failed: ${error.message}`)
+      } else {
+        console.log("Connection test successful:", data)
+        setError("✅ Connection test successful!")
+        setTimeout(() => setError(""), 3000)
+      }
+    } catch (err: any) {
+      console.error("Connection test error:", err)
+      setError(`Connection test error: ${err.message}`)
+    }
+  }
 
   const addOption = () => {
     const newId = (options.length + 1).toString()
@@ -52,6 +79,13 @@ export default function CreatePollPage() {
     setError("")
     setSuccess("")
 
+    // Check if user is loaded
+    if (!user) {
+      setError("Please wait while we load your account...")
+      setLoading(false)
+      return
+    }
+
     // Validation
     if (!title.trim()) {
       setError("Poll title is required")
@@ -67,13 +101,23 @@ export default function CreatePollPage() {
     }
 
     try {
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError || !user) {
+      console.log("Starting poll creation process...")
+      
+      // Use the user from auth context instead of calling supabase.auth.getUser()
+      if (!user) {
         throw new Error("User not authenticated")
       }
+      
+      console.log("User authenticated:", user.id)
 
       // Create poll
+      console.log("Creating poll with data:", {
+        title: title.trim(),
+        description: description.trim() || null,
+        created_by: user.id,
+        expires_at: expiresAt || null
+      })
+
       const { data: poll, error: pollError } = await supabase
         .from('polls')
         .insert({
@@ -85,7 +129,12 @@ export default function CreatePollPage() {
         .select()
         .single()
 
-      if (pollError) throw pollError
+      if (pollError) {
+        console.error("Poll creation error:", pollError)
+        throw pollError
+      }
+
+      console.log("Poll created successfully:", poll)
 
       // Create poll options
       const optionsData = validOptions.map((option, index) => ({
@@ -94,11 +143,18 @@ export default function CreatePollPage() {
         order_index: index + 1
       }))
 
+      console.log("Creating poll options:", optionsData)
+
       const { error: optionsError } = await supabase
         .from('poll_options')
         .insert(optionsData)
 
-      if (optionsError) throw optionsError
+      if (optionsError) {
+        console.error("Options creation error:", optionsError)
+        throw optionsError
+      }
+
+      console.log("Poll options created successfully")
 
       // Show success message
       setSuccess("🎉 Poll created successfully! Redirecting to polls page...")
@@ -108,6 +164,7 @@ export default function CreatePollPage() {
         router.push('/polls')
       }, 2000)
     } catch (err: any) {
+      console.error("Error in handleSubmit:", err)
       setError(err.message || "Failed to create poll")
     } finally {
       setLoading(false)
@@ -128,6 +185,13 @@ export default function CreatePollPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {authLoading && (
+                <div className="text-center mb-6 p-4 bg-blue-50 rounded-lg">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-blue-600">Loading your account...</p>
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Poll Title */}
                 <div>
@@ -233,13 +297,24 @@ export default function CreatePollPage() {
                   </div>
                 )}
 
+                {/* Test Connection Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={testConnection}
+                  className="w-full mb-4"
+                  disabled={loading || authLoading}
+                >
+                  🔍 Test Database Connection
+                </Button>
+
                 {/* Submit Button */}
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={loading}
+                  disabled={loading || authLoading}
                 >
-                  {loading ? "Creating Poll..." : "🚀 Create Poll"}
+                  {authLoading ? "Loading..." : loading ? "Creating Poll..." : "🚀 Create Poll"}
                 </Button>
               </form>
             </CardContent>
