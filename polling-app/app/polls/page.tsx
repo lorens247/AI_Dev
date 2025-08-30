@@ -16,9 +16,6 @@ interface Poll {
   expires_at: string | null
   created_at: string
   created_by: string
-  profiles: {
-    name: string
-  } | null
   poll_options: Array<{
     id: string
     text: string
@@ -48,8 +45,7 @@ export default function PollsPage() {
         .from('polls')
         .select(`
           *,
-          poll_options (*),
-          profiles!polls_created_by_fkey (name)
+          poll_options (*)
         `)
         .order('created_at', { ascending: false })
 
@@ -298,10 +294,7 @@ export default function PollsPage() {
                     </div>
                   </div>
 
-                  {/* Creator Info */}
-                  <div className="text-sm text-gray-500 mb-4">
-                    Created by: {poll.profiles?.name || 'Unknown User'}
-                  </div>
+                  {/* Creator info removed - no longer available with new schema */}
 
                   {/* Expiration Warning */}
                   {poll.expires_at && isExpired(poll.expires_at) && (

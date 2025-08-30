@@ -24,9 +24,6 @@ interface Poll {
   expires_at: string | null
   created_at: string
   created_by: string
-  profiles: {
-    name: string
-  } | null
   poll_options: PollOption[]
 }
 
@@ -64,8 +61,7 @@ export default function PollDetailPage() {
         .from('polls')
         .select(`
           *,
-          poll_options (*),
-          profiles!polls_created_by_fkey (name)
+          poll_options (*)
         `)
         .eq('id', pollId)
         .single()
@@ -280,11 +276,7 @@ export default function PollDetailPage() {
                 Created {new Date(poll.created_at).toLocaleDateString()}
               </div>
             </div>
-            {poll.profiles && (
-              <div className="text-center mt-4 text-sm text-gray-500">
-                Created by: {poll.profiles.name}
-              </div>
-            )}
+            {/* Creator info removed - no longer available with new schema */}
           </CardContent>
         </Card>
 
