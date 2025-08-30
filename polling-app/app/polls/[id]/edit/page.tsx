@@ -127,9 +127,29 @@ export default function EditPollPage() {
       return
     }
 
+    // Check if poll data is loaded
+    if (!poll) {
+      setError("Poll data not loaded. Please refresh the page.")
+      setSaving(false)
+      return
+    }
+
     try {
+      console.log("Starting poll update...")
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Update operation timed out after 15 seconds")), 15000)
+      )
+
       // Update poll
-      const { error: pollError } = await supabase
+      console.log("Updating poll with data:", {
+        title: title.trim(),
+        description: description.trim() || null,
+        expires_at: expiresAt || null
+      })
+
+      const pollUpdatePromise = supabase
         .from('polls')
         .update({
           title: title.trim(),
@@ -138,12 +158,25 @@ export default function EditPollPage() {
         })
         .eq('id', pollId)
 
-      if (pollError) throw pollError
+      const { error: pollError } = await Promise.race([pollUpdatePromise, timeoutPromise]) as any
+
+      if (pollError) {
+        console.error("Poll update error:", pollError)
+        throw pollError
+      }
+
+      console.log("Poll updated successfully")
 
       // Handle poll options
-      const existingOptions = poll?.poll_options || []
+      const existingOptions = poll.poll_options || []
       const newOptions = validOptions.filter((opt: PollOption) => opt.id.startsWith('new-'))
       const updatedOptions = validOptions.filter((opt: PollOption) => !opt.id.startsWith('new-'))
+
+      console.log("Processing options:", {
+        existing: existingOptions.length,
+        new: newOptions.length,
+        updated: updatedOptions.length
+      })
 
       // Delete removed options
       const optionsToDelete = existingOptions.filter((existing: PollOption) => 
@@ -151,23 +184,33 @@ export default function EditPollPage() {
       )
       
       if (optionsToDelete.length > 0) {
+        console.log("Deleting options:", optionsToDelete.map(opt => opt.id))
         const { error: deleteError } = await supabase
           .from('poll_options')
           .delete()
           .in('id', optionsToDelete.map((opt: PollOption) => opt.id))
 
-        if (deleteError) throw deleteError
+        if (deleteError) {
+          console.error("Delete options error:", deleteError)
+          throw deleteError
+        }
+        console.log("Options deleted successfully")
       }
 
       // Update existing options
       for (const option of updatedOptions) {
+        console.log("Updating option:", option.id, option.text)
         const { error: updateError } = await supabase
           .from('poll_options')
           .update({ text: option.text.trim() })
           .eq('id', option.id)
 
-        if (updateError) throw updateError
+        if (updateError) {
+          console.error("Update option error:", updateError)
+          throw updateError
+        }
       }
+      console.log("Existing options updated successfully")
 
       // Add new options
       if (newOptions.length > 0) {
@@ -177,11 +220,16 @@ export default function EditPollPage() {
           order_index: existingOptions.length + index + 1
         }))
 
+        console.log("Adding new options:", newOptionsData)
         const { error: insertError } = await supabase
           .from('poll_options')
           .insert(newOptionsData)
 
-        if (insertError) throw insertError
+        if (insertError) {
+          console.error("Insert options error:", insertError)
+          throw insertError
+        }
+        console.log("New options added successfully")
       }
 
       // Show success message
@@ -192,6 +240,7 @@ export default function EditPollPage() {
         router.push('/polls')
       }, 2000)
     } catch (err: any) {
+      console.error("Error in handleSubmit:", err)
       setError(err.message || "Failed to update poll")
     } finally {
       setSaving(false)

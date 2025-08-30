@@ -160,6 +160,30 @@ export default function PollsPage() {
     )
   }
 
+  const testDatabaseConnection = async () => {
+    try {
+      console.log("🧪 Testing database connection...")
+      setError("")
+      
+      // Test basic connection
+      const { data, error } = await supabase
+        .from('polls')
+        .select('count', { count: 'exact', head: true })
+      
+      if (error) {
+        console.error("❌ Database connection test failed:", error)
+        setError(`Database connection failed: ${error.message}`)
+      } else {
+        console.log("✅ Database connection successful")
+        setError("✅ Database connection successful!")
+        setTimeout(() => setError(""), 3000)
+      }
+    } catch (err: any) {
+      console.error("❌ Database test error:", err)
+      setError(`Database test error: ${err.message}`)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -204,6 +228,14 @@ export default function PollsPage() {
               size="sm"
             >
               Closed
+            </Button>
+            <Button
+              variant="outline"
+              onClick={testDatabaseConnection}
+              size="sm"
+              className="ml-auto"
+            >
+              🔍 Test DB Connection
             </Button>
           </div>
         </div>
