@@ -24,6 +24,7 @@ export default function CreatePollPage() {
   const [expiresAt, setExpiresAt] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
   
   const router = useRouter()
   const supabase = createClient()
@@ -49,6 +50,7 @@ export default function CreatePollPage() {
     e.preventDefault()
     setLoading(true)
     setError("")
+    setSuccess("")
 
     // Validation
     if (!title.trim()) {
@@ -98,8 +100,13 @@ export default function CreatePollPage() {
 
       if (optionsError) throw optionsError
 
-      // Success! Redirect to polls page
-      router.push('/polls')
+      // Show success message
+      setSuccess("🎉 Poll created successfully! Redirecting to polls page...")
+      
+      // Redirect after 2 seconds to let user see the success message
+      setTimeout(() => {
+        router.push('/polls')
+      }, 2000)
     } catch (err: any) {
       setError(err.message || "Failed to create poll")
     } finally {
@@ -216,6 +223,13 @@ export default function CreatePollPage() {
                 {error && (
                   <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
                     {error}
+                  </div>
+                )}
+
+                {/* Success Display */}
+                {success && (
+                  <div className="text-green-600 text-sm text-center bg-green-50 p-3 rounded-lg">
+                    {success}
                   </div>
                 )}
 
